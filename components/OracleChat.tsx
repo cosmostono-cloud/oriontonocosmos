@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import { Send, Sparkles, Loader2, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { Chat } from '@google/genai';
 import { createOracleChat, hasApiKey } from '../services/geminiService';
 import { Message } from '../types';
@@ -17,18 +17,21 @@ const OracleChat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const chatSessionRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   // Inicializa o chat ao abrir o componente
   useEffect(() => {
+    const apiKeyExists = hasApiKey();
+    setIsConnected(apiKeyExists);
+
     try {
-      if (hasApiKey()) {
+      if (apiKeyExists) {
         chatSessionRef.current = createOracleChat();
       } else {
-        // Se não tem chave, já manda um aviso no chat
          setMessages(prev => [...prev, {
             id: 'error-init',
             role: 'model',
-            text: '⚠️ AVISO DO SISTEMA: Não detectei a Chave de API (API_KEY). O oráculo não poderá responder. Verifique as configurações no Vercel.',
+            text: '⚠️ AVISO DO SISTEMA: Chave API_KEY não detectada. O oráculo está offline.',
             timestamp: new Date()
          }]);
       }
@@ -43,6 +46,16 @@ const OracleChat: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
+
+    if (!hasApiKey()) {
+        setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            role: 'model',
+            text: "🔴 Erro: Chave de API não configurada.",
+            timestamp: new Date()
+        }]);
+        return;
+    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -78,15 +91,10 @@ const OracleChat: React.FC = () => {
       let errorMsg = "Interferência cósmica detectada. Tente novamente.";
       const errString = error.toString();
 
-      // Diagnóstico detalhado para o usuário
       if (errString.includes("API_KEY_MISSING")) {
-        errorMsg = "🔴 ERRO CRÍTICO: Chave de API ausente. Configure 'API_KEY' no Vercel e faça o REDEPLOY.";
-      } else if (errString.includes("400") || errString.includes("INVALID_ARGUMENT")) {
-        errorMsg = "⚠️ ERRO 400: A chave API pode estar inválida ou o projeto no Google AI Studio não tem permissão.";
+        errorMsg = "🔴 ERRO: Chave API_KEY ausente.";
       } else if (errString.includes("429")) {
-        errorMsg = "⏳ Mite de uso excedido. Espere um pouco.";
-      } else {
-         errorMsg = `❌ Erro técnico: ${error.message || errString}`;
+        errorMsg = "⏳ Limite de uso excedido. Espere um pouco.";
       }
 
       setMessages(prev => [...prev, {
@@ -112,12 +120,18 @@ const OracleChat: React.FC = () => {
           <Sparkles className="text-yellow-200" size={20} />
           Oráculo Órion
         </h2>
+        
+        {/* Connection Status Indicator */}
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${isConnected ? 'bg-green-500/10 border-green-500/30 text-green-300' : 'bg-red-500/10 border-red-500/30 text-red-300'}`}>
+            {isConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
+            {isConnected ? 'ONLINE' : 'OFFLINE'}
+        </div>
       </header>
       
-      {!hasApiKey() && (
+      {!isConnected && (
           <div className="bg-red-500/20 text-red-200 p-2 text-center text-xs mx-4 mt-2 rounded border border-red-500/30 flex items-center justify-center gap-2">
               <AlertTriangle size={12} />
-              SEM CONEXÃO (API KEY)
+              CONFIGURE 'API_KEY'
           </div>
       )}
 

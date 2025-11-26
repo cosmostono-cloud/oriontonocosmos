@@ -1,41 +1,31 @@
-import { GoogleGenAI, Chat, Type } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { DailyWisdom, DreamInterpretation, StarMapReading } from "../types";
 
-// --- CONFIGURAÇÃO ---
-// Tenta ler a chave injetada pelo Vite
-const apiKey = process.env.API_KEY || "";
+// Guidelines requirement: Use process.env.API_KEY
+// Assuming the environment variable is properly exposed.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// Log de diagnóstico (aparece no Console do navegador - F12)
-console.log(`[GeminiService] Inicializando. Chave presente? ${apiKey ? "SIM (Tamanho: " + apiKey.length + ")" : "NÃO"}`);
-
-// Inicializa o cliente. Se a chave for vazia, chamadas subsequentes falharão (o que é esperado e tratado).
-const ai = new GoogleGenAI({ apiKey: apiKey });
-
-// Modelo
+// Modelo rápido para respostas ágeis
 const FAST_MODEL = 'gemini-2.5-flash';
 
 // --- HELPERS ---
+
+export const hasApiKey = (): boolean => {
+  return !!process.env.API_KEY;
+};
+
+const validateConnection = () => {
+  if (!hasApiKey()) {
+    throw new Error("API_KEY_MISSING");
+  }
+};
 
 const ensureString = (input: any): string => {
   if (typeof input === 'string') return input;
   return JSON.stringify(input);
 };
 
-// Verifica se a chave existe ANTES de tentar chamar a API
-const validateConnection = () => {
-  if (!apiKey || apiKey.trim() === "") {
-    throw new Error("API_KEY_MISSING: A chave da API não foi encontrada. Configure no Vercel em Settings > Environment Variables e faça um REDEPLOY.");
-  }
-  if (apiKey.includes("dummy")) {
-     throw new Error("API_KEY_INVALID: A chave parece ser um valor de teste inválido.");
-  }
-};
-
-export const hasApiKey = (): boolean => {
-  return !!apiKey && apiKey.length > 10;
-};
-
-// --- FUNÇÕES EXPORTADAS ---
+// --- FUNÇÕES DE NEGÓCIO ---
 
 export const getDailyWisdom = async (): Promise<DailyWisdom> => {
   try {
@@ -65,11 +55,10 @@ export const getDailyWisdom = async (): Promise<DailyWisdom> => {
     return JSON.parse(text) as DailyWisdom;
   } catch (error: any) {
     console.error("Erro Wisdom:", error);
-    // Retorna um fallback gracioso para não quebrar a home
     return {
       quote: "O universo fala com aqueles que escutam.",
       author: "Órion",
-      insight: error.message.includes("MISSING") ? "Configure a API Key no Vercel." : "Conexão estelar instável."
+      insight: hasApiKey() ? "Sintonizando frequências..." : "Chave API_KEY não configurada."
     };
   }
 };
@@ -111,7 +100,7 @@ export const interpretDream = async (dreamText: string): Promise<DreamInterpreta
     return JSON.parse(text) as DreamInterpretation;
   } catch (error: any) {
     console.error("Erro Dream:", error);
-    throw new Error(error.message || "Erro de conexão cósmica");
+    throw new Error(error.message || "Erro ao interpretar sonho");
   }
 };
 
@@ -151,11 +140,11 @@ export const getStarMapReading = async (date: string, time: string): Promise<Sta
     return JSON.parse(ensureString(text)) as StarMapReading;
   } catch (error: any) {
     console.error("Erro StarMap:", error);
-    throw new Error(error.message || "As estrelas não responderam.");
+    throw new Error(error.message || "Erro no mapa estelar");
   }
 };
 
-export const createOracleChat = (): Chat => {
+export const createOracleChat = () => {
   validateConnection();
   
   return ai.chats.create({
