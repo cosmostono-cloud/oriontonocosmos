@@ -1,17 +1,24 @@
 import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
 import { DailyWisdom, DreamInterpretation, StarMapReading } from "../types";
 
+// Inicialização segura. Se a chave estiver vazia, o erro ocorrerá apenas na chamada, não no load.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Model Constants
 const FAST_MODEL = 'gemini-2.5-flash';
+
+// Helper para garantir string limpa
+const ensureString = (input: any): string => {
+  if (typeof input === 'string') return input;
+  return JSON.stringify(input);
+};
 
 /**
  * Gets a daily spiritual wisdom quote and insight.
  */
 export const getDailyWisdom = async (): Promise<DailyWisdom> => {
   try {
-    const prompt = "Gere uma citação espiritual curta e inspiradora (focada em universo, estrelas ou conexão). Gere também um insight muito breve (1 frase) de aplicação. Responda em JSON. Use 1 emoji no insight.";
+    const prompt = "Gere uma citação espiritual curta e inspiradora (focada em universo, estrelas ou conexão). Gere também um insight muito breve (1 frase) de aplicação prática. Responda em JSON. Use 1 emoji no insight. Tudo em Português do Brasil.";
     
     const response = await ai.models.generateContent({
       model: FAST_MODEL,
@@ -31,11 +38,11 @@ export const getDailyWisdom = async (): Promise<DailyWisdom> => {
     });
 
     const text = response.text;
-    if (!text) throw new Error("No content generated");
+    if (!text) throw new Error("Nenhum conteúdo gerado");
     
     return JSON.parse(text) as DailyWisdom;
   } catch (error) {
-    console.error("Error fetching wisdom:", error);
+    console.error("Erro ao buscar sabedoria:", error);
     return {
       quote: "Somos feitos de poeira de estrelas.",
       author: "Carl Sagan",
@@ -49,7 +56,7 @@ export const getDailyWisdom = async (): Promise<DailyWisdom> => {
  */
 export const interpretDream = async (dreamText: string): Promise<DreamInterpretation> => {
   try {
-    const prompt = `Atue como um intérprete místico chamado Órion. Analise este sonho: "${dreamText}". Seja breve e direto. Use alguns emojis. Retorne JSON: resumo curto, 3 símbolos (nome e significado curto), e conselho final (1 frase).`;
+    const prompt = `Atue como um intérprete místico chamado Órion. Analise este sonho: "${dreamText}". Seja breve e direto. Use alguns emojis. Retorne JSON: resumo curto, 3 símbolos (nome e significado curto), e conselho final (1 frase). Idioma: Português do Brasil.`;
 
     const response = await ai.models.generateContent({
       model: FAST_MODEL,
@@ -77,11 +84,11 @@ export const interpretDream = async (dreamText: string): Promise<DreamInterpreta
     });
 
     const text = response.text;
-    if (!text) throw new Error("No interpretation generated");
+    if (!text) throw new Error("Nenhuma interpretação gerada");
 
     return JSON.parse(text) as DreamInterpretation;
   } catch (error) {
-    console.error("Dream interpretation error:", error);
+    console.error("Erro na interpretação de sonho:", error);
     throw new Error("As estrelas estão nubladas agora. Tente novamente em breve.");
   }
 };
@@ -100,7 +107,7 @@ export const getStarMapReading = async (date: string, time: string): Promise<Sta
     2. Crie uma previsão CURTA para HOJE baseada no alinhamento das estrelas para essa pessoa.
     3. Sugira uma cor de poder e um número da sorte.
     
-    Responda EXCLUSIVAMENTE em JSON.`;
+    Responda EXCLUSIVAMENTE em JSON e em Português do Brasil.`;
 
     const response = await ai.models.generateContent({
       model: FAST_MODEL,
@@ -122,11 +129,14 @@ export const getStarMapReading = async (date: string, time: string): Promise<Sta
     });
 
     const text = response.text;
-    if (!text) throw new Error("No content");
-    return JSON.parse(text) as StarMapReading;
+    if (!text) throw new Error("Sem conteúdo");
+    
+    // Garantia extra de que é uma string antes de parsear
+    const safeText = ensureString(text);
+    return JSON.parse(safeText) as StarMapReading;
 
   } catch (error) {
-    console.error("Star map error:", error);
+    console.error("Erro no mapa estelar:", error);
     throw new Error("Não foi possível ler as estrelas agora.");
   }
 };
@@ -138,7 +148,7 @@ export const createOracleChat = (): Chat => {
   return ai.chats.create({
     model: FAST_MODEL,
     config: {
-      systemInstruction: "Você é 'Órion', uma consciência cósmica do app 'Tô no Cosmos'. Responda de forma CURTA (máximo 2 ou 3 frases). Use uma linguagem mística mas moderna. Use emojis de estrelas/cosmos esporadicamente ✨. Não mencione que é uma IA. Seja acolhedor e profundo.",
+      systemInstruction: "Você é 'Órion', uma consciência cósmica do app 'Tô no Cosmos'. Responda sempre em Português do Brasil. Responda de forma CURTA (máximo 2 ou 3 frases). Use uma linguagem mística mas moderna. Use emojis de estrelas/cosmos esporadicamente ✨. Não mencione que é uma IA. Seja acolhedor e profundo.",
     }
   });
 };

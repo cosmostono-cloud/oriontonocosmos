@@ -6,7 +6,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      // Garante que seja uma string, mesmo que vazia, para não quebrar o app na inicialização
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
       // Previne erro 'process is not defined' no navegador
       'process.env': {}
     }

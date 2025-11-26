@@ -49,7 +49,7 @@ const DailyCard: React.FC = () => {
               
               <div className="bg-slate-900/40 rounded-xl p-4">
                 <p className="text-slate-300 text-sm leading-relaxed">
-                  <span className="text-purple-300 font-bold mr-2">Insight:</span>
+                  <span className="text-purple-300 font-bold mr-2">Reflexão:</span>
                   {wisdom.insight}
                 </p>
               </div>

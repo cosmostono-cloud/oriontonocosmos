@@ -93,7 +93,7 @@ const App: React.FC = () => {
       case AppView.RITUALS:
         return <Rituals />;
       default:
-        return <div>View not found</div>;
+        return <div>Página não encontrada</div>;
     }
   };
 

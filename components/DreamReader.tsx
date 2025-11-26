@@ -7,15 +7,17 @@ const DreamReader: React.FC = () => {
   const [dreamText, setDreamText] = useState('');
   const [interpretation, setInterpretation] = useState<DreamInterpretation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleInterpret = async () => {
     if (!dreamText.trim()) return;
     setIsLoading(true);
+    setError(null);
     try {
       const result = await interpretDream(dreamText);
       setInterpretation(result);
     } catch (e) {
-      alert("Erro ao interpretar sonho. Tente novamente.");
+      setError("Não foi possível conectar com Órion no momento. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -24,6 +26,7 @@ const DreamReader: React.FC = () => {
   const reset = () => {
     setInterpretation(null);
     setDreamText('');
+    setError(null);
   };
 
   if (interpretation) {
@@ -97,6 +100,12 @@ const DreamReader: React.FC = () => {
             />
           </div>
         </div>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 text-red-200 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
 
         <button
           onClick={handleInterpret}
