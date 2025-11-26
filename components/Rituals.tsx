@@ -1,54 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Heart, Feather, Sun, Droplets, Leaf, Sparkles } from 'lucide-react';
 
-interface RitualTask {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  completed: boolean;
-}
+// Static configuration to prevent serialization issues with React Components (Icons)
+const RITUAL_TASKS = [
+  { id: 'hydration', label: 'Hidratação Consciente', icon: Droplets },
+  { id: 'silence', label: 'Momento de Silêncio', icon: Sun },
+  { id: 'nature', label: 'Conexão com a Natureza', icon: Leaf },
+  { id: 'kindness', label: 'Ato de Gentileza', icon: Heart },
+];
 
 const Rituals: React.FC = () => {
   const [gratitudeList, setGratitudeList] = useState<string[]>(['', '', '']);
-  const [tasks, setTasks] = useState<RitualTask[]>([
-    { id: 'hydration', label: 'Hidratação Consciente', icon: Droplets, completed: false },
-    { id: 'silence', label: 'Momento de Silêncio', icon: Sun, completed: false },
-    { id: 'nature', label: 'Conexão com a Natureza', icon: Leaf, completed: false },
-    { id: 'kindness', label: 'Ato de Gentileza', icon: Heart, completed: false },
-  ]);
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
 
   // Load from local storage on mount
   useEffect(() => {
-    const today = new Date().toLocaleDateString();
-    const savedData = localStorage.getItem(`cosmos_rituals_${today}`);
-    
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      setGratitudeList(parsed.gratitudeList);
-      setTasks(parsed.tasks);
+    try {
+      const today = new Date().toLocaleDateString();
+      const savedData = localStorage.getItem(`cosmos_rituals_${today}`);
+      
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (parsed.gratitudeList) setGratitudeList(parsed.gratitudeList);
+        
+        // Handle migration from old format (where full objects were saved) to new format (ids only)
+        if (parsed.tasks && Array.isArray(parsed.tasks)) {
+           // Old format detection: elements are objects
+           if (parsed.tasks.length > 0 && typeof parsed.tasks[0] === 'object') {
+              const completedIds = parsed.tasks
+                .filter((t: any) => t.completed)
+                .map((t: any) => t.id);
+              setCompletedTasks(completedIds);
+           } else {
+             // It might be the wrong key, but let's handle if it was stored as tasks: [ids]
+             // (Unlikely based on previous code, but safe to ignore)
+           }
+        } 
+        
+        // Correct new format key
+        if (parsed.completedTasks && Array.isArray(parsed.completedTasks)) {
+          setCompletedTasks(parsed.completedTasks);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load rituals:", e);
+      // Fallback to clear state if data is corrupted
     }
   }, []);
 
   // Save and calculate progress
   useEffect(() => {
     const today = new Date().toLocaleDateString();
-    const dataToSave = { gratitudeList, tasks };
+    // Only save serializable data (strings, numbers, booleans, arrays of these)
+    const dataToSave = { gratitudeList, completedTasks };
     localStorage.setItem(`cosmos_rituals_${today}`, JSON.stringify(dataToSave));
 
     // Calculate progress
-    const totalItems = tasks.length + 3; // 3 gratitudes
-    const completedTasks = tasks.filter(t => t.completed).length;
+    const totalItems = RITUAL_TASKS.length + 3; // 3 gratitudes
+    const completedCount = completedTasks.length;
     const filledGratitudes = gratitudeList.filter(g => g.trim().length > 0).length;
-    const currentProgress = Math.round(((completedTasks + filledGratitudes) / totalItems) * 100);
+    const currentProgress = Math.round(((completedCount + filledGratitudes) / totalItems) * 100);
     
     setProgress(currentProgress);
-  }, [tasks, gratitudeList]);
+  }, [completedTasks, gratitudeList]);
 
   const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => 
-      t.id === id ? { ...t, completed: !t.completed } : t
-    ));
+    setCompletedTasks(prev => 
+      prev.includes(id) 
+        ? prev.filter(taskId => taskId !== id) 
+        : [...prev, id]
+    );
   };
 
   const handleGratitudeChange = (index: number, value: string) => {
@@ -120,35 +142,37 @@ const Rituals: React.FC = () => {
            </h3>
            
            <div className="space-y-3">
-             {tasks.map((task) => (
+             {RITUAL_TASKS.map((task) => {
+               const isCompleted = completedTasks.includes(task.id);
+               return (
                <button
                  key={task.id}
                  onClick={() => toggleTask(task.id)}
                  className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all duration-300 group border ${
-                   task.completed 
+                   isCompleted 
                      ? 'bg-gradient-to-r from-indigo-900/60 to-purple-900/60 border-indigo-500/50' 
                      : 'bg-slate-900/20 border-white/5 hover:bg-slate-800/40'
                  }`}
                >
                  <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${
-                   task.completed ? 'bg-indigo-500 border-indigo-500 scale-110' : 'border-slate-500 group-hover:border-indigo-400'
+                   isCompleted ? 'bg-indigo-500 border-indigo-500 scale-110' : 'border-slate-500 group-hover:border-indigo-400'
                  }`}>
-                   {task.completed && <Check size={14} className="text-white" />}
+                   {isCompleted && <Check size={14} className="text-white" />}
                  </div>
                  
                  <div className="flex-1 text-left">
                     <span className={`text-sm font-medium transition-colors ${
-                      task.completed ? 'text-indigo-200 line-through decoration-indigo-500/50' : 'text-slate-300'
+                      isCompleted ? 'text-indigo-200 line-through decoration-indigo-500/50' : 'text-slate-300'
                     }`}>
                       {task.label}
                     </span>
                  </div>
 
                  <task.icon size={18} className={`${
-                   task.completed ? 'text-indigo-400' : 'text-slate-600'
+                   isCompleted ? 'text-indigo-400' : 'text-slate-600'
                  }`} />
                </button>
-             ))}
+             )})}
            </div>
         </div>
 
