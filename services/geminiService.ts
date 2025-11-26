@@ -1,8 +1,7 @@
 import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
 import { DailyWisdom, DreamInterpretation, StarMapReading } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Model Constants
 const FAST_MODEL = 'gemini-2.5-flash';
