@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
 import { Chat } from '@google/genai';
-import { createOracleChat } from '../services/geminiService';
+import { createOracleChat, hasApiKey } from '../services/geminiService';
 import { Message } from '../types';
 
 const OracleChat: React.FC = () => {
@@ -15,18 +15,25 @@ const OracleChat: React.FC = () => {
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
   const chatSessionRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Tenta conectar ao carregar
+  // Inicializa o chat ao abrir o componente
   useEffect(() => {
     try {
-      chatSessionRef.current = createOracleChat();
-      setConnectionError(null);
+      if (hasApiKey()) {
+        chatSessionRef.current = createOracleChat();
+      } else {
+        // Se não tem chave, já manda um aviso no chat
+         setMessages(prev => [...prev, {
+            id: 'error-init',
+            role: 'model',
+            text: '⚠️ AVISO DO SISTEMA: Não detectei a Chave de API (API_KEY). O oráculo não poderá responder. Verifique as configurações no Vercel.',
+            timestamp: new Date()
+         }]);
+      }
     } catch (e: any) {
-      console.error("Falha ao iniciar chat:", e);
-      setConnectionError(e.message || "Erro desconhecido ao iniciar");
+      console.error("Erro init chat:", e);
     }
   }, []);
 
@@ -36,22 +43,6 @@ const OracleChat: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
-
-    // Se houve erro na inicialização, tenta recriar
-    if (!chatSessionRef.current) {
-        try {
-            chatSessionRef.current = createOracleChat();
-            setConnectionError(null);
-        } catch (e: any) {
-             setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                role: 'model',
-                text: `⚠️ Erro de Configuração: ${e.message}`,
-                timestamp: new Date()
-              }]);
-            return;
-        }
-    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -65,8 +56,13 @@ const OracleChat: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Tenta recriar sessão se não existir
+      if (!chatSessionRef.current) {
+        chatSessionRef.current = createOracleChat();
+      }
+
       const response = await chatSessionRef.current.sendMessage({ message: userMsg.text });
-      const modelText = response.text || "O vácuo está silencioso. Tente sintonizar novamente 🌌.";
+      const modelText = response.text || "O silêncio do vácuo...";
 
       const modelMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -75,22 +71,28 @@ const OracleChat: React.FC = () => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, modelMsg]);
+
     } catch (error: any) {
-      console.error("Chat error", error);
+      console.error("Chat Error:", error);
       
-      let errorMessage = "Houve uma interferência na transmissão estelar. Tente novamente.";
-      
-      // Diagnóstico de erro para o usuário
-      if (error.message && error.message.includes('API_KEY')) {
-        errorMessage = "⚠️ Falta a API Key. Configure no Vercel (Settings > Environment Variables).";
-      } else if (error.status === 400 || error.toString().includes('400')) {
-        errorMessage = "⚠️ Erro na Requisição (400). A chave pode estar inválida.";
+      let errorMsg = "Interferência cósmica detectada. Tente novamente.";
+      const errString = error.toString();
+
+      // Diagnóstico detalhado para o usuário
+      if (errString.includes("API_KEY_MISSING")) {
+        errorMsg = "🔴 ERRO CRÍTICO: Chave de API ausente. Configure 'API_KEY' no Vercel e faça o REDEPLOY.";
+      } else if (errString.includes("400") || errString.includes("INVALID_ARGUMENT")) {
+        errorMsg = "⚠️ ERRO 400: A chave API pode estar inválida ou o projeto no Google AI Studio não tem permissão.";
+      } else if (errString.includes("429")) {
+        errorMsg = "⏳ Mite de uso excedido. Espere um pouco.";
+      } else {
+         errorMsg = `❌ Erro técnico: ${error.message || errString}`;
       }
 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        text: errorMessage,
+        text: errorMsg,
         timestamp: new Date()
       }]);
     } finally {
@@ -112,10 +114,10 @@ const OracleChat: React.FC = () => {
         </h2>
       </header>
       
-      {connectionError && (
+      {!hasApiKey() && (
           <div className="bg-red-500/20 text-red-200 p-2 text-center text-xs mx-4 mt-2 rounded border border-red-500/30 flex items-center justify-center gap-2">
               <AlertTriangle size={12} />
-              {connectionError.includes('API_KEY') ? 'Configure a API KEY no Vercel' : 'Erro de Conexão'}
+              SEM CONEXÃO (API KEY)
           </div>
       )}
 
