@@ -1,7 +1,7 @@
 import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
 import { DailyWisdom, DreamInterpretation, StarMapReading } from "../types";
 
-// Inicialização segura. Se a chave estiver vazia, o erro ocorrerá apenas na chamada, não no load.
+// Inicialização segura conforme guidelines
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Model Constants
@@ -17,6 +17,12 @@ const ensureString = (input: any): string => {
  * Gets a daily spiritual wisdom quote and insight.
  */
 export const getDailyWisdom = async (): Promise<DailyWisdom> => {
+  if (!process.env.API_KEY) return {
+    quote: "Configure sua API Key para receber mensagens do cosmos.",
+    author: "Sistema",
+    insight: "Verifique o painel do Vercel."
+  };
+
   try {
     const prompt = "Gere uma citação espiritual curta e inspiradora (focada em universo, estrelas ou conexão). Gere também um insight muito breve (1 frase) de aplicação prática. Responda em JSON. Use 1 emoji no insight. Tudo em Português do Brasil.";
     
@@ -55,6 +61,8 @@ export const getDailyWisdom = async (): Promise<DailyWisdom> => {
  * Interprets a user's dream using AI.
  */
 export const interpretDream = async (dreamText: string): Promise<DreamInterpretation> => {
+  if (!process.env.API_KEY) throw new Error("Chave de API não configurada.");
+
   try {
     const prompt = `Atue como um intérprete místico chamado Órion. Analise este sonho: "${dreamText}". Seja breve e direto. Use alguns emojis. Retorne JSON: resumo curto, 3 símbolos (nome e significado curto), e conselho final (1 frase). Idioma: Português do Brasil.`;
 
@@ -97,6 +105,8 @@ export const interpretDream = async (dreamText: string): Promise<DreamInterpreta
  * Generates a Star Map reading based on birth date/time.
  */
 export const getStarMapReading = async (date: string, time: string): Promise<StarMapReading> => {
+  if (!process.env.API_KEY) throw new Error("Chave de API não configurada. Verifique suas configurações.");
+
   try {
     const prompt = `Atue como Órion, o guia estelar.
     Dados de nascimento: Data ${date}, Hora ${time}.
@@ -131,7 +141,6 @@ export const getStarMapReading = async (date: string, time: string): Promise<Sta
     const text = response.text;
     if (!text) throw new Error("Sem conteúdo");
     
-    // Garantia extra de que é uma string antes de parsear
     const safeText = ensureString(text);
     return JSON.parse(safeText) as StarMapReading;
 

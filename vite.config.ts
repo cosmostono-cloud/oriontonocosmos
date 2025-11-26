@@ -2,13 +2,18 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, (process as any).cwd(), '');
+  // Carrega variáveis de ambiente
+  const env = loadEnv(mode, '.', '');
+  
+  // Tenta pegar a chave de API de várias fontes possíveis
+  const apiKey = env.API_KEY || env.VITE_API_KEY || '';
+
   return {
     plugins: [react()],
     define: {
-      // Garante que seja uma string, mesmo que vazia, para não quebrar o app na inicialização
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
-      // Previne erro 'process is not defined' no navegador
+      // Injeta a chave de forma segura no código
+      'process.env.API_KEY': JSON.stringify(apiKey),
+      // Evita crash por 'process is not defined'
       'process.env': {}
     }
   };

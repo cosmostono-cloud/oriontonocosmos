@@ -127,6 +127,7 @@ const StarMap: React.FC = () => {
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:text-purple-300 transition-colors" size={18} />
               <input 
                 type="text" 
+                inputMode="numeric"
                 value={birthDate}
                 onChange={handleDateChange}
                 placeholder="25/05/1990"
@@ -143,6 +144,7 @@ const StarMap: React.FC = () => {
               <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:text-purple-300 transition-colors" size={18} />
               <input 
                 type="text" 
+                inputMode="numeric"
                 value={birthTime}
                 onChange={handleTimeChange}
                 placeholder="14:30"
