@@ -1,7 +1,8 @@
-import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
+import { GoogleGenAI, Chat, Type } from "@google/genai";
 import { DailyWisdom, DreamInterpretation, StarMapReading } from "../types";
 
-// Inicialização segura conforme guidelines
+// Inicialização da IA. 
+// Always use process.env.API_KEY directly.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Model Constants
@@ -13,17 +14,19 @@ const ensureString = (input: any): string => {
   return JSON.stringify(input);
 };
 
+// Helper para verificar chave
+const checkApiKey = () => {
+  if (!process.env.API_KEY || process.env.API_KEY.trim() === '') {
+    throw new Error("API_KEY_MISSING: A chave da API não foi encontrada. Verifique as variáveis de ambiente no Vercel.");
+  }
+};
+
 /**
  * Gets a daily spiritual wisdom quote and insight.
  */
 export const getDailyWisdom = async (): Promise<DailyWisdom> => {
-  if (!process.env.API_KEY) return {
-    quote: "Configure sua API Key para receber mensagens do cosmos.",
-    author: "Sistema",
-    insight: "Verifique o painel do Vercel."
-  };
-
   try {
+    checkApiKey();
     const prompt = "Gere uma citação espiritual curta e inspiradora (focada em universo, estrelas ou conexão). Gere também um insight muito breve (1 frase) de aplicação prática. Responda em JSON. Use 1 emoji no insight. Tudo em Português do Brasil.";
     
     const response = await ai.models.generateContent({
@@ -50,9 +53,9 @@ export const getDailyWisdom = async (): Promise<DailyWisdom> => {
   } catch (error) {
     console.error("Erro ao buscar sabedoria:", error);
     return {
-      quote: "Somos feitos de poeira de estrelas.",
-      author: "Carl Sagan",
-      insight: "Você é o universo em movimento. Brilhe hoje! ✨"
+      quote: "Configure a API Key no painel do Vercel para conectar ao Cosmos.",
+      author: "Sistema",
+      insight: "Settings > Environment Variables > Key: API_KEY"
     };
   }
 };
@@ -61,7 +64,7 @@ export const getDailyWisdom = async (): Promise<DailyWisdom> => {
  * Interprets a user's dream using AI.
  */
 export const interpretDream = async (dreamText: string): Promise<DreamInterpretation> => {
-  if (!process.env.API_KEY) throw new Error("Chave de API não configurada.");
+  checkApiKey();
 
   try {
     const prompt = `Atue como um intérprete místico chamado Órion. Analise este sonho: "${dreamText}". Seja breve e direto. Use alguns emojis. Retorne JSON: resumo curto, 3 símbolos (nome e significado curto), e conselho final (1 frase). Idioma: Português do Brasil.`;
@@ -95,9 +98,9 @@ export const interpretDream = async (dreamText: string): Promise<DreamInterpreta
     if (!text) throw new Error("Nenhuma interpretação gerada");
 
     return JSON.parse(text) as DreamInterpretation;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro na interpretação de sonho:", error);
-    throw new Error("As estrelas estão nubladas agora. Tente novamente em breve.");
+    throw new Error(error.message || "Erro na conexão com as estrelas.");
   }
 };
 
@@ -105,7 +108,7 @@ export const interpretDream = async (dreamText: string): Promise<DreamInterpreta
  * Generates a Star Map reading based on birth date/time.
  */
 export const getStarMapReading = async (date: string, time: string): Promise<StarMapReading> => {
-  if (!process.env.API_KEY) throw new Error("Chave de API não configurada. Verifique suas configurações.");
+  checkApiKey();
 
   try {
     const prompt = `Atue como Órion, o guia estelar.
@@ -144,9 +147,9 @@ export const getStarMapReading = async (date: string, time: string): Promise<Sta
     const safeText = ensureString(text);
     return JSON.parse(safeText) as StarMapReading;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro no mapa estelar:", error);
-    throw new Error("Não foi possível ler as estrelas agora.");
+    throw new Error(error.message || "Não foi possível ler as estrelas agora.");
   }
 };
 
@@ -154,6 +157,8 @@ export const getStarMapReading = async (date: string, time: string): Promise<Sta
  * Creates a chat session for the Oracle.
  */
 export const createOracleChat = (): Chat => {
+  checkApiKey();
+  
   return ai.chats.create({
     model: FAST_MODEL,
     config: {

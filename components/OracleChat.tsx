@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Loader2 } from 'lucide-react';
+import { Send, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
 import { Chat } from '@google/genai';
 import { createOracleChat } from '../services/geminiService';
 import { Message } from '../types';
@@ -15,12 +15,18 @@ const OracleChat: React.FC = () => {
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const chatSessionRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Tenta conectar ao carregar
   useEffect(() => {
-    if (!chatSessionRef.current) {
+    try {
       chatSessionRef.current = createOracleChat();
+      setConnectionError(null);
+    } catch (e: any) {
+      console.error("Falha ao iniciar chat:", e);
+      setConnectionError(e.message || "Erro desconhecido ao iniciar");
     }
   }, []);
 
@@ -29,7 +35,23 @@ const OracleChat: React.FC = () => {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !chatSessionRef.current || isLoading) return;
+    if (!inputText.trim() || isLoading) return;
+
+    // Se houve erro na inicialização, tenta recriar
+    if (!chatSessionRef.current) {
+        try {
+            chatSessionRef.current = createOracleChat();
+            setConnectionError(null);
+        } catch (e: any) {
+             setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'model',
+                text: `⚠️ Erro de Configuração: ${e.message}`,
+                timestamp: new Date()
+              }]);
+            return;
+        }
+    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -53,12 +75,22 @@ const OracleChat: React.FC = () => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, modelMsg]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error", error);
+      
+      let errorMessage = "Houve uma interferência na transmissão estelar. Tente novamente.";
+      
+      // Diagnóstico de erro para o usuário
+      if (error.message && error.message.includes('API_KEY')) {
+        errorMessage = "⚠️ Falta a API Key. Configure no Vercel (Settings > Environment Variables).";
+      } else if (error.status === 400 || error.toString().includes('400')) {
+        errorMessage = "⚠️ Erro na Requisição (400). A chave pode estar inválida.";
+      }
+
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        text: "Houve uma interferência na transmissão estelar. Tente novamente.",
+        text: errorMessage,
         timestamp: new Date()
       }]);
     } finally {
@@ -79,6 +111,13 @@ const OracleChat: React.FC = () => {
           Oráculo Órion
         </h2>
       </header>
+      
+      {connectionError && (
+          <div className="bg-red-500/20 text-red-200 p-2 text-center text-xs mx-4 mt-2 rounded border border-red-500/30 flex items-center justify-center gap-2">
+              <AlertTriangle size={12} />
+              {connectionError.includes('API_KEY') ? 'Configure a API KEY no Vercel' : 'Erro de Conexão'}
+          </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 z-10 pb-24">
         {messages.map((msg) => (
