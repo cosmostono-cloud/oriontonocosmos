@@ -9,14 +9,34 @@ const StarMap: React.FC = () => {
   const [reading, setReading] = useState<StarMapReading | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Formata a data enquanto digita: DD/MM/AAAA
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let v = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+    if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5);
+    if (v.length > 10) v = v.slice(0, 10);
+    setBirthDate(v);
+  };
+
+  // Formata a hora enquanto digita: HH:MM
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let v = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    if (v.length > 2) v = v.slice(0, 2) + ':' + v.slice(2);
+    if (v.length > 5) v = v.slice(0, 5);
+    setBirthTime(v);
+  };
+
   const handleAnalyze = async () => {
-    if (!birthDate || !birthTime) return;
+    if (birthDate.length < 10 || birthTime.length < 5) {
+        alert("Por favor, preencha a data (DD/MM/AAAA) e hora (HH:MM) completas.");
+        return;
+    }
     setIsLoading(true);
     try {
       const result = await getStarMapReading(birthDate, birthTime);
       setReading(result);
-    } catch (e) {
-      alert("As estrelas estão tímidas hoje. Tente novamente.");
+    } catch (e: any) {
+      alert(e.message || "As estrelas estão tímidas hoje. Verifique sua conexão ou a chave de API.");
     } finally {
       setIsLoading(false);
     }
@@ -24,6 +44,8 @@ const StarMap: React.FC = () => {
 
   const reset = () => {
     setReading(null);
+    setBirthDate('');
+    setBirthTime('');
   };
 
   if (reading) {
@@ -104,12 +126,15 @@ const StarMap: React.FC = () => {
             <div className="relative group">
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:text-purple-300 transition-colors" size={18} />
               <input 
-                type="date" 
+                type="text" 
                 value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all cursor-pointer"
+                onChange={handleDateChange}
+                placeholder="25/05/1990"
+                maxLength={10}
+                className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder-slate-600"
               />
             </div>
+            <p className="text-[10px] text-slate-500 pl-4">Formato: DD/MM/AAAA</p>
           </div>
 
           <div className="space-y-2">
@@ -117,12 +142,15 @@ const StarMap: React.FC = () => {
             <div className="relative group">
               <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:text-purple-300 transition-colors" size={18} />
               <input 
-                type="time" 
+                type="text" 
                 value={birthTime}
-                onChange={(e) => setBirthTime(e.target.value)}
-                className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all cursor-pointer"
+                onChange={handleTimeChange}
+                placeholder="14:30"
+                maxLength={5}
+                className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder-slate-600"
               />
             </div>
+            <p className="text-[10px] text-slate-500 pl-4">Formato: HH:MM</p>
           </div>
 
           <button
