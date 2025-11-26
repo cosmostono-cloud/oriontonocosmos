@@ -31,7 +31,7 @@ const OracleChat: React.FC = () => {
          setMessages(prev => [...prev, {
             id: 'error-init',
             role: 'model',
-            text: '⚠️ AVISO DO SISTEMA: Chave API_KEY não detectada. O oráculo está offline.',
+            text: '⚠️ SISTEMA: Chave API_KEY não detectada. Verifique as configurações.',
             timestamp: new Date()
          }]);
       }
@@ -51,7 +51,7 @@ const OracleChat: React.FC = () => {
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             role: 'model',
-            text: "🔴 Erro: Chave de API não configurada.",
+            text: "🔴 Erro: Chave API_KEY ausente ou inválida.",
             timestamp: new Date()
         }]);
         return;
@@ -95,6 +95,8 @@ const OracleChat: React.FC = () => {
         errorMsg = "🔴 ERRO: Chave API_KEY ausente.";
       } else if (errString.includes("429")) {
         errorMsg = "⏳ Limite de uso excedido. Espere um pouco.";
+      } else if (errString.includes("403")) {
+          errorMsg = "🚫 Chave inválida ou permissão negada pelo Google.";
       }
 
       setMessages(prev => [...prev, {

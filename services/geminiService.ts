@@ -1,8 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DailyWisdom, DreamInterpretation, StarMapReading } from "../types";
 
-// Guidelines requirement: Use process.env.API_KEY
-// Assuming the environment variable is properly exposed.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Modelo rápido para respostas ágeis
@@ -16,6 +14,7 @@ export const hasApiKey = (): boolean => {
 
 const validateConnection = () => {
   if (!hasApiKey()) {
+    console.warn("⚠️ Tentativa de uso sem API_KEY definida.");
     throw new Error("API_KEY_MISSING");
   }
 };
@@ -58,7 +57,7 @@ export const getDailyWisdom = async (): Promise<DailyWisdom> => {
     return {
       quote: "O universo fala com aqueles que escutam.",
       author: "Órion",
-      insight: hasApiKey() ? "Sintonizando frequências..." : "Chave API_KEY não configurada."
+      insight: hasApiKey() ? "Sintonizando frequências..." : "Configure a API_KEY."
     };
   }
 };
